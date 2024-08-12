@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskMaster</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-4xl font-bold text-center text-blue-600 mb-8">TaskMaster</h1>
+
+        <!-- Add Task Form -->
+        <form action="{{ url_for('add_task') }}" method="POST"
+            class="mb-8 bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+            <div class="mb-4">
+                <input type="text" name="content" placeholder="Enter task" required
+                    class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+            </div>
+            <div class="mb-4">
+                <select name="category" required
+                    class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                    <option value="">Select category</option>
+                    <option value="Work">Work</option>
+                    <option value="Personal">Personal</option>
+                    <option value="Shopping">Shopping</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="mb-4">
+                <input type="date" name="due_date"
+                    class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+            </div>
+            <div class="flex items-center justify-between">
+                <button type="submit"
+                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                    Add Task
+                </button>
+            </div>
+        </form>
+
+        <!-- Task List -->
+        <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+            <h2 class="text-2xl font-bold mb-4">Your Tasks</h2>
+            {% if tasks %}
+            {% for task in tasks %}
+            <div class="mb-4 p-4 border-b task-item" data-task-id="{{ task.id if task.id else 'N/A' }}">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3
+                            class="text-lg font-semibold {% if task.status == 'Completed' %}line-through text-gray-500{% endif %}">
+                            {{ task.content if task.content else 'No content' }}
+                        </h3>
+                        <p class="text-sm text-gray-600">
+                            Category: {{ task.category if task.category else 'N/A' }} |
+                            Due: {% if task.due_date %}{{ task.due_date.strftime('%Y-%m-%d') }}{% else %}Not set{% endif %} |
+                            Status: {{ task.status if task.status else 'N/A' }}
+                        </p>
+                    </div>
+                    <div>
+                        <button data-task-id="{{ task.id if task.id else 'N/A' }}" onclick="editTask(this)">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <a href="{{ url_for('delete_task', id=task.id) if task.id else '#' }}"
+                            class="text-red-500 hover:text-red-700 ml-2">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p>No tasks found.</p>
+            {% endif %}
+        </div>
+
+    <!-- Edit Task Modal -->
+    <div id="editModal" class="fixed z-10 inset-0 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog"
+        aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div
+                class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <form id="editForm" method="POST">
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <div class="mb-4">
+                            <label for="editContent" class="block text-gray-700 text-sm font-bold mb-2">Task</label>
+                            <input type="text" id="editContent" name="content" required
+                                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        </div>
+                        <div class="mb-4">
+                            <label for="editCategory"
+                                class="block text-gray-700 text-sm font-bold mb-2">Category</label>
+                            <select id="editCategory" name="category" required
+                                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                                <option value="Work">Work</option>
+                                <option value="Personal">Personal</option>
+                                <option value="Shopping">Shopping</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <label for="editDueDate" class="block text-gray-700 text-sm font-bold mb-2">Due Date</label>
+                            <input type="date" id="editDueDate" name="due_date"
+                                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        </div>
+                        <div class="mb-4">
+                            <label for="editStatus" class="block text-gray-700 text-sm font-bold mb-2">Status</label>
+                            <select id="editStatus" name="status" required
+                                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                                <option value="Pending">Pending</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Completed">Completed</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                        <button type="submit"
+                            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+                            Update
+                        </button>
+                        <button type="button" onclick="closeModal()"
+                            class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+
+</html>
